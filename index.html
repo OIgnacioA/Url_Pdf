@@ -253,6 +253,22 @@
             return finalHash;
         }
 
+
+
+           /* Impuesto = 01 (automotor)
+
+            Objeto = AE764SE (ejemplo)
+
+           Periodo = 202502 (año+cuota)
+
+           Plantas: Edificado, Rural, Baldío, N o vacío
+           Impuestos: 01 AU, 03 Em, 00 ED-BA-RU, 10 IC* */
+
+
+
+                  //  202504_100e11e89eadadf27b3a7f4bac4ffa34e6Raefa9fd623fe29b0deb92d24b29c0ac120011397442 STEEVE
+                 //   202504_100e11e89eadadf27b3a7f4bac4ffa34e6Raefa9fd623fe29b0deb92d24b29c0ac120011397442
+
         async function obtenerHashPorObjetoParaPDF(impuesto, objeto, periodo, impuestoCorto, test, plantaICSeleccionada) {
             if (!["00", "01", "03", "10"].includes(impuesto) || periodo.length !== 6) {
                 if (periodo.length !== 6) {
@@ -313,6 +329,9 @@
                 
                 resultadoArea.textContent = url;
                 copiarPortapapeles(url);
+
+
+                        window.open(url, '_blank');
 
                 // No podemos abrir el navegador automáticamente en JavaScript moderno por seguridad
                 // pero sí podemos darle un hint al usuario.
