@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador Individual de URL (Web)</title>
+    <style>
+        body {
+             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            /* --- INICIO CAMBIOS PARA FONDO --- */
+            background-image: url('steeve.png');
+            background-size: cover; /* Ajusta la imagen para cubrir todo el fondo */
+            background-attachment: fixed; /* Mantiene el fondo fijo si se hace scroll */
+            background-color: #f4f4f4; /* Color de fallback */
+            /* --- FIN CAMBIOS PARA FONDO --- */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .checkbox-group input {
+            width: auto;
+            margin-right: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #resultadoArea {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            min-height: 80px;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        .hidden {
+            display: none;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador Individual de URL</h1>
+        <div class="alert" id="errorAlert"></div>
+
+        <div class="form-group">
+            <label for="impuestoCombo">Impuesto:</label>
+            <select id="impuestoCombo">
+                <option value="">-- Seleccionar --</option>
+                <option value="RU">RU</option>
+                <option value="ED">ED</option>
+                <option value="BA">BA</option>
+                <option value="AU">AU</option>
+                <option value="EM">EM</option>
+                <option value="IC">IC</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="periodoField">Periodo (AAAAMM):</label>
+            <input type="text" id="periodoField" maxlength="6" placeholder="Ej: 202504">
+        </div>
+
+        <div class="form-group">
+            <label for="objetoField">Objeto:</label>
+            <input type="text" id="objetoField" placeholder="Ingrese el número de objeto">
+        </div>
+
+        <div class="form-group hidden" id="plantaICGroup">
+            <label for="plantaICCombo">Planta IC:</label>
+            <select id="plantaICCombo">
+                <option value="E">E</option>
+                <option value="B">B</option>
+                <option value="R">R</option>
+            </select>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="ambienteTestCheck">
+            <label for="ambienteTestCheck">Ambiente de TEST (sin marcar: Producción)</label>
+        </div>
+
+        <button onclick="generarHash()">Generar URL y Copiar</button>
+
+        <div class="form-group">
+            <label>URL Generada:</label>
+            <div id="resultadoArea"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONSTANTES ---
+        const CLAVEHASH = "VF59fdsi-89/@df";
+        const impuestoCodigo = {
+            "RU": "00", "ED": "00", "BA": "00", 
+            "AU": "01", "EM": "03", "IC": "10"
+        };
+        const plantaMap = {
+            "BA": "B", "ED": "E", "RU": "R", "AU": "N", "EM": "N", "IC": "N"
+        };
+
+        // --- REFERENCIAS DOM ---
+        const impuestoCombo = document.getElementById('impuestoCombo');
+        const periodoField = document.getElementById('periodoField');
+        const objetoField = document.getElementById('objetoField');
+        const plantaICCombo = document.getElementById('plantaICCombo');
+        const plantaICGroup = document.getElementById('plantaICGroup');
+        const ambienteTestCheck = document.getElementById('ambienteTestCheck');
+        const resultadoArea = document.getElementById('resultadoArea');
+        const errorAlert = document.getElementById('errorAlert');
+
+        // --- LÓGICA DE INTERFAZ ---
+
+        impuestoCombo.addEventListener('change', function() {
+            const selected = impuestoCombo.value;
+            if (selected === 'IC') {
+                plantaICGroup.classList.remove('hidden');
+            } else {
+                plantaICGroup.classList.add('hidden');
+            }
+            hideError();
+        });
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        function hideError() {
+            errorAlert.style.display = 'none';
+        }
+
+        function copiarPortapapeles(texto) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(texto).then(() => {
+                    // Opcional: Mostrar un mensaje de éxito
+                    console.log('URL copiada al portapapeles.');
+                }).catch(err => {
+                    console.error('Error al copiar: ', err);
+                });
+            } else {
+                // Fallback para navegadores antiguos
+                const tempInput = document.createElement('textarea');
+                tempInput.value = texto;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                console.log('URL copiada (método fallback).');
+            }
+        }
+
+        // --- LÓGICA DE HASH ---
+
+        // Función auxiliar para convertir ArrayBuffer a string hexadecimal
+        function bufferToHex(buffer) {
+            return Array.prototype.map.call(new Uint8Array(buffer), x => (('00' + x.toString(16)).slice(-2))).join('');
+        }
+
+        async function getHashEmailNuevo(impuesto, objeto, periodo, impuestoCorto, plantaICSeleccionada) {
+            let planta;
+            let objetoParaHash = objeto.toUpperCase();
+
+            // Lógica de asignación de planta (basada en el Case B del código Java)
+            if (impuestoCorto === "IC") {
+                if (!plantaICSeleccionada) {
+                    throw new Error("Debe seleccionar una Planta (E, B o R) para IC.");
+                }
+                planta = plantaICSeleccionada;
+                // En modo individual, el objeto se ingresa SIN la letra de planta, por eso objetoParaHash es el objeto.
+            } else {
+                planta = plantaMap[impuestoCorto] || 'N';
+            }
+
+            // CONCATENACIÓN CLAVE: CLAVEHASH + impuesto + OBJETO + planta + periodo
+            const text = CLAVEHASH + impuesto + objetoParaHash + planta + periodo;
+
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+
+            // Uso de SubtleCrypto para SHA-256 (asíncrono)
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hash = bufferToHex(hashBuffer);
+
+            // URL FINAL: periodo_impuesto + (mitad hash) + planta + (resto hash) + OBJETO
+            const hashLength = hash.length;
+            const finalHash = periodo + "_" + impuesto + 
+                              hash.substring(0, hashLength / 2) +
+                              planta + 
+                              hash.substring(hashLength / 2) + 
+                              objetoParaHash;
+            
+            return finalHash;
+        }
+
+        async function obtenerHashPorObjetoParaPDF(impuesto, objeto, periodo, impuestoCorto, test, plantaICSeleccionada) {
+            if (!["00", "01", "03", "10"].includes(impuesto) || periodo.length !== 6) {
+                if (periodo.length !== 6) {
+                    throw new Error("El periodo debe tener 6 caracteres (AAAAMM).");
+                }
+                throw new Error("Impuesto o formato de periodo inválido.");
+            }
+            
+            const hash = await getHashEmailNuevo(impuesto, objeto, periodo, impuestoCorto, plantaICSeleccionada);
+            
+            const baseUrl = test 
+                ? "https://app.test.arba.gov.ar/pdfDeuda/emisiones/ARBADeuda/"
+                : "https://app.arba.gov.ar/pdfDeuda/emisiones/ARBADeuda/";
+            
+            return baseUrl + hash;
+        }
+
+        // --- FUNCIÓN PRINCIPAL DE GENERACIÓN ---
+
+        async function generarHash() {
+            hideError();
+            resultadoArea.textContent = 'Generando...';
+
+            const impuestoSeleccionado = impuestoCombo.value;
+            const periodo = periodoField.value.trim();
+            const objeto = objetoField.value.trim();
+            const test = ambienteTestCheck.checked;
+            
+            let plantaICSeleccionada = '';
+
+            // 1. Validaciones
+            if (!impuestoSeleccionado || impuestoSeleccionado === '-- Seleccionar --' || periodo === '' || objeto === '') {
+                showError("Debe completar todos los campos obligatorios: Impuesto, Periodo y Objeto.");
+                resultadoArea.textContent = '';
+                return;
+            }
+
+            if (periodo.length !== 6 || !/^\d+$/.test(periodo)) {
+                showError("El periodo debe ser un valor numérico de 6 dígitos (AAAAMM).");
+                resultadoArea.textContent = '';
+                return;
+            }
+
+            if (impuestoSeleccionado === 'IC') {
+                plantaICSeleccionada = plantaICCombo.value;
+                if (!plantaICSeleccionada) {
+                    showError("Debe seleccionar una Planta (E, B o R) para IC.");
+                    resultadoArea.textContent = '';
+                    return;
+                }
+            }
+            
+            const impuestoCorto = impuestoSeleccionado;
+            const impuesto = impuestoCodigo[impuestoCorto];
+
+            try {
+                const url = await obtenerHashPorObjetoParaPDF(impuesto, objeto, periodo, impuestoCorto, test, plantaICSeleccionada);
+                
+                resultadoArea.textContent = url;
+                copiarPortapapeles(url);
+
+                // No podemos abrir el navegador automáticamente en JavaScript moderno por seguridad
+                // pero sí podemos darle un hint al usuario.
+                console.log("URL generada. Copiada al portapapeles. Puede abrirla manualmente.");
+                
+            } catch (ex) {
+                showError("Error generando hash: " + ex.message);
+                resultadoArea.textContent = '';
+            }
+        }
+    </script>
+</body>
+</html>
